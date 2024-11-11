@@ -1,16 +1,46 @@
 <template>
   <div class="estimate-tool">
     <h1 class="font-bold">託送・発電管理システム見積ツール</h1>
-    <label>プラン選択</label>
-    <ul>
-      <li>
-        <select v-model="selectedPlan" id="plan-select">
-          <option v-for="(plan, index) in plans" :key="index" :value="plan">
-            {{ plan.name }} - {{ plan.basePrice }} 円
-          </option>
-        </select>
-      </li>
-    </ul>
+    <div class="fpinvoice-editor">
+      <div class="fpinvoice">
+        <div>明細項目名</div>
+        <div>単価</div>
+        <div>数量</div>
+        <div>備考</div>
+        <div class="billing-items">
+          <select v-model="selectedPlan" id="plan-select" @change="updatePrice">
+            <option v-for="(plan, index) in plans" :key="index" :value="plan">
+              {{ plan.name }}
+            </option>
+          </select>
+          <input type="text" :value="price" placeholder="単価" readonly />
+          <input type="text" placeholder="数量" />
+          <input type="text" placeholder="備考" />
+        </div>
+        <div
+          v-for="(product, index) in products"
+          :key="index"
+          class="billing-items"
+        >
+          <label>
+            <input
+              type="checkbox"
+              placeholder="項目名"
+              v-model="product.selected"
+            />
+            {{ product.name }}
+          </label>
+          <input
+            type="text"
+            :value="product.price"
+            placeholder="単価"
+            readonly
+          />
+          <input type="text" placeholder="数量" />
+          <input type="text" placeholder="備考" />
+        </div>
+      </div>
+    </div>
 
     <div class="customer-count">
       <label>
@@ -20,14 +50,6 @@
             <input type="number" v-model="customerCount" min="0" />
           </li>
         </ul>
-      </label>
-    </div>
-
-    <h3>オプションサービス料金</h3>
-    <div v-for="(product, index) in products" :key="index" class="product">
-      <label>
-        <input type="checkbox" v-model="product.selected" />
-        {{ product.name }} ({{ product.price }} 円)
       </label>
     </div>
 
@@ -62,7 +84,12 @@ const plans = ref([
 
 // 選択したプラン及び需要家数
 const selectedPlan = ref(null);
+const price = ref(0);
 const customerCount = ref(0);
+
+function updatePrice() {
+  price.value = selectedPlan.value ? selectedPlan.value.basePrice : "";
+}
 
 // 需要家数による月額の計算
 const monthlyFee = computed(() => {
@@ -198,5 +225,17 @@ h4 {
 ul {
   list-style-type: none;
   padding: 0;
+}
+
+.fpinvoice {
+  max-width: 1200px;
+  margin: auto;
+  display: grid;
+  grid-template-columns: 35% 15% 10% 40%;
+  margin-bottom: 1rem;
+}
+
+.billing-items {
+  display: contents;
 }
 </style>
