@@ -13,8 +13,8 @@
               {{ plan.name }}
             </option>
           </select>
-          <input type="text" :value="price" placeholder="単価" readonly />
-          <input type="text" placeholder="数量" />
+          <input type="text" :value="monthlyFee" placeholder="単価" readonly />
+          <input type="number" v-model="customerCount" placeholder="需要家数入力" />
           <input type="text" placeholder="備考" />
         </div>
         <div
@@ -22,35 +22,26 @@
           :key="index"
           class="billing-items"
         >
-          <label>
+          <div class="checkbox-container">
             <input
+              :id="'product-' + index"
               type="checkbox"
               placeholder="項目名"
               v-model="product.selected"
+              @change="handleCheckboxChange(product)"
             />
-            {{ product.name }}
-          </label>
+            <label class="product-name" :for="'product-' + index">{{ product.name }}</label>
+          </div>
           <input
             type="text"
             :value="product.price"
             placeholder="単価"
             readonly
           />
-          <input type="text" placeholder="数量" />
+          <input type="number" placeholder="数量" v-model="product.quantity" />
           <input type="text" placeholder="備考" />
         </div>
       </div>
-    </div>
-
-    <div class="customer-count">
-      <label>
-        需要家数入力
-        <ul>
-          <li>
-            <input type="number" v-model="customerCount" min="0" />
-          </li>
-        </ul>
-      </label>
     </div>
 
     <div class="total">
@@ -85,7 +76,7 @@ const plans = ref([
 // 選択したプラン及び需要家数
 const selectedPlan = ref(null);
 const price = ref(0);
-const customerCount = ref(0);
+const customerCount = ref("");
 
 function updatePrice() {
   price.value = selectedPlan.value ? selectedPlan.value.basePrice : "";
@@ -146,14 +137,23 @@ const monthlyFee = computed(() => {
 
 // オプションサービス
 const products = ref([
-  { name: "パスワード自動解除機能", price: 5000, selected: false },
-  { name: "確定値、速報値自動取得機能", price: 5000, selected: false },
-  { name: "30分速報値自動取得機能", price: 25000, selected: false },
-  { name: "発電関連帳票自動取得機能", price: 5000, selected: false },
-  { name: "再エネ卸帳票自動取得機能", price: 10000, selected: false },
-  { name: "沖縄関連帳票自動取得機能", price: 10000, selected: false },
-  { name: "全銀データ自動作成機能", price: 5000, selected: false },
+  { name: "パスワード自動解除機能", price: 5000, selected: false, quantity: 0 },
+  { name: "確定値、速報値自動取得機能", price: 5000, selected: false, quantity: 0 },
+  { name: "30分速報値自動取得機能", price: 25000, selected: false, quantity: 0 },
+  { name: "発電関連帳票自動取得機能", price: 5000, selected: false, quantity: 0 },
+  { name: "再エネ卸帳票自動取得機能", price: 10000, selected: false, quantity: 0 },
+  { name: "沖縄関連帳票自動取得機能", price: 10000, selected: false, quantity: 0 },
+  { name: "全銀データ自動作成機能", price: 5000, selected: false, quantity: 0 },
 ]);
+
+//オプションのチェックボックスを押すと数量がの値を1にする
+function handleCheckboxChange(product) {
+  if(product.selected){
+    product.quantity = 1; 
+  } else {
+    product.quantity = 0;
+  }
+}
 
 // オプションサービス総額計算
 const optionsTotalPrice = computed(() => {
@@ -238,4 +238,16 @@ ul {
 .billing-items {
   display: contents;
 }
+
+.checkbox-container {
+  display: flex;
+  align-items: center;
+  margin-right: 10px;
+}
+
+input[type="checkbox"] {
+  margin-right: 10px;
+}
+
+
 </style>
