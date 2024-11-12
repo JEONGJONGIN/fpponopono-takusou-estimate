@@ -1,6 +1,6 @@
 <template>
   <div class="estimate-tool">
-    <h1 class="font-bold">託送・発電管理システム見積ツール</h1>
+    <h1 class="mb-10 text-3xl font-bold">託送・発電管理システム見積ツール</h1>
     <div class="fpinvoice-editor">
       <div class="fpinvoice">
         <div>明細項目名</div>
@@ -38,7 +38,7 @@
             placeholder="単価"
             readonly
           />
-          <input type="number" placeholder="数量" v-model="product.quantity" />
+          <input type="number" placeholder="数量" v-model="product.quantity" readonly/>
           <input type="text" placeholder="備考" />
         </div>
       </div>
@@ -206,14 +206,6 @@ button:hover {
   margin-top: 20px;
 }
 
-h1 {
-  color: #333;
-}
-
-h2 {
-  color: #444;
-}
-
 h3 {
   margin-top: 30px;
 }
@@ -232,7 +224,8 @@ ul {
   margin: auto;
   display: grid;
   grid-template-columns: 35% 15% 10% 40%;
-  margin-bottom: 1rem;
+  margin-bottom: 2rem;
+  gap: 0.5rem;
 }
 
 .billing-items {
@@ -242,11 +235,26 @@ ul {
 .checkbox-container {
   display: flex;
   align-items: center;
-  margin-right: 10px;
+  border: 1px solid gray;
+  padding: 3px;
+  border-radius: 5px;
 }
 
 input[type="checkbox"] {
   margin-right: 10px;
+}
+
+input[type="text"],
+input[type="number"] {
+  border: 1px solid gray;
+  padding: 3px;
+  border-radius: 5px;
+}
+
+select {
+  border: 1px solid gray;
+  padding: 5px;
+  border-radius: 5px;
 }
 
 
