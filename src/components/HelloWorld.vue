@@ -5,17 +5,75 @@
       <div class="fpinvoice">
         <div>明細項目名</div>
         <div>単価</div>
+        <div>単価 ※単価変動時</div>
         <div>数量</div>
-        <div>備考</div>
+        <div>小計</div>
         <div class="billing-items">
           <select v-model="selectedPlan" id="plan-select" @change="updatePrice">
             <option v-for="(plan, index) in plans" :key="index" :value="plan">
               {{ plan.name }}
             </option>
           </select>
-          <input type="text" :value="monthlyFee" placeholder="単価" readonly />
-          <input type="number" v-model="customerCount" placeholder="需要家数入力" />
-          <input type="text" placeholder="備考" />
+          <input
+            type="number"
+            :value="monthlyFee"
+            placeholder="単価"
+            class="text-right"
+            readonly
+          />
+          <input type="number" placeholder="" class="text-right" readonly />
+          <input
+            type="number"
+            v-model="customerCount"
+            placeholder="需要家数入力"
+            class="text-right"
+          />
+          <input
+            type="number"
+            :value="monthlyFee"
+            placeholder="0"
+            class="text-right"
+            readonly
+          />
+        </div>
+        <div
+          v-for="(stCost, index) in startUpCost"
+          :key="'startup-' + index"
+          class="billing-items"
+        >
+            <input
+              type="text"
+              :value="stCost.name"
+              placeholder="明細項目名"
+              class="pl-10"
+              readonly
+            />
+          <input
+            type="number"
+            :value="stCost.price"
+            placeholder="単価"
+            class="text-right"
+            readonly
+          />
+          <input
+            type="number"
+            v-model.number="stCost.variablePrice"
+            placeholder="単価_変動時用"
+            class="text-right"
+          />
+          <input
+            type="number"
+            v-model.number="stCost.quantity"
+            placeholder="数量"
+            class="text-right"
+          />
+          <input
+            type="number"
+            :value="calculateCost(stCost)"
+            placeholder="0"
+            class="text-right"
+            readonly
+          />
         </div>
         <div
           v-for="(product, index) in products"
@@ -30,16 +88,37 @@
               v-model="product.selected"
               @change="handleCheckboxChange(product)"
             />
-            <label class="product-name" :for="'product-' + index">{{ product.name }}</label>
+            <label class="product-name" :for="'product-' + index">{{
+              product.name
+            }}</label>
           </div>
           <input
-            type="text"
+            type="number"
             :value="product.price"
             placeholder="単価"
+            class="text-right"
             readonly
           />
-          <input type="number" placeholder="数量" v-model="product.quantity" readonly/>
-          <input type="text" placeholder="備考" />
+          <input
+            type="number"
+            v-model.number="product.variablePrice"
+            placeholder="単価_変動時用"
+            class="text-right"
+          />
+          <input
+            type="number"
+            placeholder="数量"
+            v-model.number="product.quantity"
+            class="text-right"
+            readonly
+          />
+          <input
+            type="number"
+            :value="calculateCost(product)"
+            placeholder="0"
+            class="text-right"
+            readonly
+          />
         </div>
       </div>
     </div>
@@ -47,7 +126,7 @@
     <div class="total">
       <h2>見積合計金額: {{ totalPrice }} 円</h2>
     </div>
-    <button @click="generateEstimate">見積詳細</button>
+    <!-- <button @click="generateEstimate">見積詳細</button>
     <div v-if="estimateGenerated">
       <h3>見積詳細</h3>
       <ul>
@@ -59,7 +138,7 @@
         </li>
       </ul>
       <h4>合計金額: {{ totalPrice }} 円</h4>
-    </div>
+    </div> -->
   </div>
 </template>
 
@@ -71,6 +150,16 @@ const plans = ref([
   { name: "ベーシック プラン", basePrice: 32000 },
   { name: "スタンダード プラン", basePrice: 40000 },
   { name: "コンプリート プラン", basePrice: 50000 },
+]);
+
+//初期導入費用
+const startUpCost = ref([
+  {
+    name: "初期導入費用",
+    price: 100000,
+    quantity: 1,
+    variablePrice: 0,
+  },
 ]);
 
 // 選択したプラン及び需要家数
@@ -137,45 +226,95 @@ const monthlyFee = computed(() => {
 
 // オプションサービス
 const products = ref([
-  { name: "パスワード自動解除機能", price: 5000, selected: false, quantity: 0 },
-  { name: "確定値、速報値自動取得機能", price: 5000, selected: false, quantity: 0 },
-  { name: "30分速報値自動取得機能", price: 25000, selected: false, quantity: 0 },
-  { name: "発電関連帳票自動取得機能", price: 5000, selected: false, quantity: 0 },
-  { name: "再エネ卸帳票自動取得機能", price: 10000, selected: false, quantity: 0 },
-  { name: "沖縄関連帳票自動取得機能", price: 10000, selected: false, quantity: 0 },
-  { name: "全銀データ自動作成機能", price: 5000, selected: false, quantity: 0 },
+  {
+    name: "パスワード自動解除機能",
+    price: 5000,
+    selected: false,
+    quantity: 0,
+    variablePrice: 0,
+  },
+  {
+    name: "確定値、速報値自動取得機能",
+    price: 5000,
+    selected: false,
+    quantity: 0,
+    variablePrice: 0,
+  },
+  {
+    name: "30分速報値自動取得機能",
+    price: 25000,
+    selected: false,
+    quantity: 0,
+    variablePrice: 0,
+  },
+  {
+    name: "発電関連帳票自動取得機能",
+    price: 5000,
+    selected: false,
+    quantity: 0,
+    variablePrice: 0,
+  },
+  {
+    name: "再エネ卸帳票自動取得機能",
+    price: 10000,
+    selected: false,
+    quantity: 0,
+    variablePrice: 0,
+  },
+  {
+    name: "沖縄関連帳票自動取得機能",
+    price: 10000,
+    selected: false,
+    quantity: 0,
+    variablePrice: 0,
+  },
+  {
+    name: "全銀データ自動作成機能",
+    price: 5000,
+    selected: false,
+    quantity: 0,
+    variablePrice: 0,
+  },
 ]);
 
 //オプションのチェックボックスを押すと数量がの値を1にする
 function handleCheckboxChange(product) {
-  if(product.selected){
-    product.quantity = 1; 
+  if (product.selected) {
+    product.quantity = 1;
   } else {
     product.quantity = 0;
   }
 }
 
-// オプションサービス総額計算
-const optionsTotalPrice = computed(() => {
-  return products.value
-    .filter((product) => product.selected)
-    .reduce((total, product) => total + product.price, 0);
-});
+//各項目のtotalCostを計算
+function calculateCost(item) {
+  const unitPrice = item.variablePrice > 0 ? item.variablePrice : item.price;
+  return unitPrice * item.quantity;
+}
 
+// 総合額計算
 const totalPrice = computed(() => {
-  return monthlyFee.value + optionsTotalPrice.value;
+  const startupTotal = startUpCost.value.reduce(
+    (sum, stCost) => sum + calculateCost(stCost),
+    0
+  );
+  const optionsTotal = products.value.reduce(
+    (sum, product) => (product.selected ? sum + calculateCost(product) : sum),
+    0
+  );
+  return monthlyFee.value + startupTotal + optionsTotal;
 });
 
-// 선택된 제품 목록
-const selectedProducts = computed(() => {
-  return products.value.filter((product) => product.selected);
-});
+// 選択されたオプション目録
+// const selectedProducts = computed(() => {
+//   return products.value.filter((product) => product.selected);
+// });
 
-// 견적 생성 버튼 클릭 시 처리
-const estimateGenerated = ref(false);
-const generateEstimate = () => {
-  estimateGenerated.value = true;
-};
+// // 견적 생성 버튼 클릭 시 처리
+// const estimateGenerated = ref(false);
+// const generateEstimate = () => {
+//   estimateGenerated.value = true;
+// };
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
@@ -223,7 +362,7 @@ ul {
   max-width: 1200px;
   margin: auto;
   display: grid;
-  grid-template-columns: 35% 15% 10% 40%;
+  grid-template-columns: 40% 15% 15% 10% 15%;
   margin-bottom: 2rem;
   gap: 0.5rem;
 }
@@ -256,6 +395,4 @@ select {
   padding: 5px;
   border-radius: 5px;
 }
-
-
 </style>
