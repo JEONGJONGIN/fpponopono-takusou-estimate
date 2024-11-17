@@ -37,17 +37,56 @@
           />
         </div>
         <div
+          v-for="(user, index) in users"
+          :key="'users-' + index"
+          class="billing-items"
+        >
+          <input
+            type="text"
+            :value="user.name"
+            placeholder="明細項目名"
+            class="pl-10"
+            readonly
+          />
+          <input
+            type="number"
+            :value="user.price"
+            placeholder="単価"
+            class="text-right"
+            readonly
+          />
+          <input
+            type="number"
+            v-model.number="user.variablePrice"
+            placeholder="単価_変動時用"
+            class="text-right"
+          />
+          <input
+            type="number"
+            v-model.number="user.quantity"
+            placeholder="数量"
+            class="text-right"
+          />
+          <input
+            type="number"
+            :value="calculateCost(user, index)"
+            placeholder="0"
+            class="text-right"
+            readonly
+          />
+        </div>
+        <div
           v-for="(stCost, index) in startUpCost"
           :key="'startup-' + index"
           class="billing-items"
         >
-            <input
-              type="text"
-              :value="stCost.name"
-              placeholder="明細項目名"
-              class="pl-10"
-              readonly
-            />
+          <input
+            type="text"
+            :value="stCost.name"
+            placeholder="明細項目名"
+            class="pl-10"
+            readonly
+          />
           <input
             type="number"
             :value="stCost.price"
@@ -155,9 +194,18 @@ const plans = ref([
 //初期導入費用
 const startUpCost = ref([
   {
-    name: "初期導入費用",
+    name: "システム初期導入費用",
     price: 100000,
     quantity: 1,
+    variablePrice: 0,
+  },
+]);
+
+const users = ref([
+  {
+    name: "ユーザーアカウント 追加分",
+    price: 2000,
+    quantity: 0,
     variablePrice: 0,
   },
 ]);
@@ -286,10 +334,19 @@ function handleCheckboxChange(product) {
   }
 }
 
+
 //各項目のtotalCostを計算
-function calculateCost(item) {
+function calculateCost(item, index) {
   const unitPrice = item.variablePrice > 0 ? item.variablePrice : item.price;
-  return unitPrice * item.quantity;
+  const baseCost = unitPrice * item.quantity;
+
+  if (index < users.value.quantity) {
+    const discountMultiplier = Math.floor(users.value.quantity / 3); //３の倍数ごとに割引
+    const discount = discountMultiplier * 1000;
+    return baseCost - discount;
+  }
+
+  return baseCost;
 }
 
 // 総合額計算
