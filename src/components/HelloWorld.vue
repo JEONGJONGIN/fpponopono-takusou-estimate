@@ -1,16 +1,18 @@
 <template>
   <div class="estimate-tool">
-    <h1 class="mb-10 text-4xl font-bold">託送・発電管理システム見積ツール</h1>
+    <h1 class="mb-10 text-4xl font-bold">託送・発電管理システム見積</h1>
     <div class="fpinvoice-editor">
       <div class="fpinvoice">
-        <div></div>
+        <div>Plan</div>
+        <div>Opt</div>
         <div>明細項目名</div>
         <div>単価</div>
-        <div>単価 ※単価変動時</div>
+        <div>上書単価</div>
         <div>数量</div>
         <div>小計</div>
         <div class="billing-items">
           <div class="billing-items-first"></div>
+          <div class="billing-items-second"></div>
           <select v-model="selectedPlan" id="plan-select" @change="updatePrice">
             <option v-for="(plan, index) in plans" :key="index" :value="plan">
               {{ plan.name }}
@@ -23,7 +25,12 @@
             class="text-right"
             readonly
           />
-          <input type="number" placeholder="" class="text-right planPrice" readonly />
+          <input
+            type="number"
+            placeholder=""
+            class="text-right planPrice"
+            readonly
+          />
           <input
             type="number"
             v-model="customerCount"
@@ -44,6 +51,7 @@
           class="billing-items"
         >
           <div class="billing-items-first"></div>
+          <div class="billing-items-second"></div>
           <input
             type="text"
             :value="user.name"
@@ -84,6 +92,7 @@
           class="billing-items"
         >
           <div class="billing-items-first"></div>
+          <div class="billing-items-second"></div>
           <input
             type="text"
             :value="stCost.name"
@@ -123,18 +132,34 @@
           :key="index"
           class="billing-items"
         >
-          <div class="checkbox-container">
+          <div
+            class="billing-items-first"
+            v-if="product.type !== 'product'"
+          ></div>
+          <div class="checkbox-option" v-if="product.type !== 'productIp'">
             <input
-              :id="'product-' + index"
+              :id="'product-option-' + index"
+              :disabled="product.selected_nomal || isDisabledOption(product)"
               type="checkbox"
-              placeholder="項目名"
-              v-model="product.selected"
+              v-model="product.selected_option"
               @change="handleCheckboxChange(product)"
             />
           </div>
-          <label class="product-name item-name" :for="'product-' + index">{{
-            product.name
-          }}</label>
+          <div class="checkbox-nomal">
+            <input
+              :id="'product-nomals-' + index"
+              :disabled="product.selected_option"
+              type="checkbox"
+              v-model="product.selected_nomal"
+              @change="handleCheckboxChange(product)"
+            />
+          </div>
+          <label
+            placeholder="項目名"
+            class="product-name item-name"
+            :for="'product-' + index"
+            >{{ product.name }}</label
+          >
           <input
             type="number"
             :value="product.price"
@@ -168,7 +193,8 @@
           :key="'storage-' + index"
           class="billing-items"
         >
-        <div class="billing-items-first"></div>
+          <div class="billing-items-first"></div>
+          <div class="billing-items-second"></div>
           <input
             type="text"
             :value="storage.name"
@@ -210,7 +236,7 @@
         <p>小計金額 : {{ formatNumber(totalPriceExcludingTax) }} 円</p>
       </div>
       <div class="total">
-        <p>消費税 : {{ formatNumber(totalPriceTax) }} 円</p>
+        <p>消費税(10％) : {{ formatNumber(totalPriceTax) }} 円</p>
       </div>
       <div class="total">
         <p>合計金額 : {{ formatNumber(totalPrice) }} 円</p>
@@ -224,9 +250,9 @@ import { ref, computed, watch } from "vue";
 
 //プラン情報
 const plans = ref([
-  { name: "ベーシック プラン", basePrice: 32000 },
-  { name: "スタンダード プラン", basePrice: 40000 },
-  { name: "コンプリート プラン", basePrice: 50000 },
+  { name: "ベーシック プラン", basePrice: 32000, optionPrice: 0 },
+  { name: "スタンダード プラン", basePrice: 40000, optionPrice: 15000 },
+  { name: "コンプリート プラン", basePrice: 50000, optionPrice: 30000 },
 ]);
 
 //初期導入費用
@@ -256,7 +282,7 @@ const products = ref([
     type: "productIp",
     name: "接続元IPアドレスによるアクセス制限機能",
     price: 1000,
-    selected: false,
+    selected_nomal: false,
     quantity: 0,
     variablePrice: 0,
   },
@@ -265,7 +291,8 @@ const products = ref([
     type: "product",
     name: "パスワード自動解除機能",
     price: 5000,
-    selected: false,
+    selected_option: false,
+    selected_nomal: false,
     quantity: 0,
     variablePrice: 0,
   },
@@ -273,7 +300,8 @@ const products = ref([
     type: "product",
     name: "確定値、速報値自動取得機能",
     price: 5000,
-    selected: false,
+    selected_option: false,
+    selected_nomal: false,
     quantity: 0,
     variablePrice: 0,
   },
@@ -281,7 +309,8 @@ const products = ref([
     type: "product",
     name: "30分速報値自動取得機能",
     price: 25000,
-    selected: false,
+    selected_option: false,
+    selected_nomal: false,
     quantity: 0,
     variablePrice: 0,
   },
@@ -289,7 +318,8 @@ const products = ref([
     type: "product",
     name: "発電関連帳票自動取得機能",
     price: 5000,
-    selected: false,
+    selected_option: false,
+    selected_nomal: false,
     quantity: 0,
     variablePrice: 0,
   },
@@ -297,7 +327,8 @@ const products = ref([
     type: "product",
     name: "再エネ卸帳票自動取得機能",
     price: 10000,
-    selected: false,
+    selected_option: false,
+    selected_nomal: false,
     quantity: 0,
     variablePrice: 0,
   },
@@ -305,7 +336,8 @@ const products = ref([
     type: "product",
     name: "沖縄関連帳票自動取得機能",
     price: 5000,
-    selected: false,
+    selected_option: false,
+    selected_nomal: false,
     quantity: 0,
     variablePrice: 0,
   },
@@ -313,7 +345,8 @@ const products = ref([
     type: "product",
     name: "全銀データ自動作成機能",
     price: 5000,
-    selected: false,
+    selected_option: false,
+    selected_nomal: false,
     quantity: 0,
     variablePrice: 0,
   },
@@ -396,25 +429,44 @@ function handleCheckboxChange(product) {
   if (product.type === "productIp") {
     const user = users.value.find((user) => user.type === "user");
     if (user) {
-      if (product.selected) {
+      if (product.selected_nomal) {
         product.quantity = user.quantity;
       } else {
         product.quantity = 0;
       }
     }
-  } else if (product.selected) {
+  } else if (product.selected_nomal) {
+    product.quantity = 1;
+  } else if (product.selected_option) {
     product.quantity = 1;
   } else {
     product.quantity = 0;
   }
 }
 
+const totalPlanPackOptPrice = computed(() => {
+  return products.value
+    .filter((product) => product.selected_option)
+    .reduce((sum, product) => sum + product.price, 0);
+})
+
+function isDisabledOption(product) {
+  if(product.selected_option){
+    return false
+  }
+  if (!selectedPlan.value || selectedPlan.value.optionPrice === undefined)
+    return true;
+  const remainingPrice = selectedPlan.value.optionPrice - totalPlanPackOptPrice.value;
+  return remainingPrice < product.price;
+}
+
+
 watch(
   () => users.value.map((user) => user.quantity), // users 배열의 quantity만 감지
   () => {
     // 유저의 quantity가 변경될 때마다 해당 "productIp" 타입 제품의 quantity 업데이트
     products.value.forEach((product) => {
-      if (product.type === "productIp" && product.selected) {
+      if (product.type === "productIp" && product.selected_nomal) {
         const user = users.value.find((user) => user.type === "user");
         if (user) {
           product.quantity = user.quantity;
@@ -461,13 +513,13 @@ function calculateCost(item) {
       const discount = discountMultiplier * 1000;
       return baseCost - firstUserPrice - discount;
     }
-  } else if (item.type === "storage") {
-    if (usercount > 1) {
-      const discount = item.variablePrice > 0 ? item.variablePrice : item.price;
-      return baseCost - discount;
-    }
+  } else if (
+    (item.type === "storage" && usercount > 1) ||
+    item.selected_option
+  ) {
+    const discount = item.variablePrice > 0 ? item.variablePrice : item.price;
+    return baseCost - discount;
   }
-
   return baseCost;
 }
 
@@ -482,7 +534,8 @@ const totalPriceExcludingTax = computed(() => {
     0
   );
   const optionsTotal = products.value.reduce(
-    (sum, product) => (product.selected ? sum + calculateCost(product) : sum),
+    (sum, product) =>
+      product.selected_nomal ? sum + calculateCost(product) : sum,
     0
   );
   const product_storageTotal = product_storage.value.reduce(
@@ -507,10 +560,9 @@ const totalPrice = computed(() => {
   return totalPriceExcludingTax.value + totalPriceTax.value;
 });
 
-  const formatNumber = (number) => {
-    return new Intl.NumberFormat("en-US").format(number);
-  }
-
+const formatNumber = (number) => {
+  return new Intl.NumberFormat("en-US").format(number);
+};
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
@@ -536,7 +588,7 @@ button:hover {
 
 .total {
   margin-top: 5px;
-  margin-right: 27px;
+  margin-left: 40px;
   font-weight: bold;
   font-size: 20px;
 }
@@ -553,7 +605,7 @@ h4 {
   max-width: 1200px;
   margin: auto;
   display: grid;
-  grid-template-columns: 3% 46% 12% 12% 10% 12%;
+  grid-template-columns: 3% 3% 44% 11% 11% 10% 14%;
   margin-bottom: 2rem;
   gap: 0.5rem;
 }
@@ -562,7 +614,8 @@ h4 {
   display: contents;
 }
 
-.billing-items-first {
+.billing-items-first,
+.billing-items-second {
   border: 1px solid gray;
   border-radius: 5px;
   background-color: #f5f5f5;
@@ -576,10 +629,12 @@ h4 {
   padding-top: 4px;
 }
 
-.checkbox-container {
+.checkbox-nomal,
+.checkbox-option {
   border: 1px solid gray;
   border-radius: 5px;
   padding-top: 5px;
+  accent-color: #0075ff;
 }
 
 input[type="text"],
@@ -589,8 +644,7 @@ input[type="number"] {
   border-radius: 5px;
 }
 
-input[placeholder="単価"]
-{
+input[placeholder="単価"] {
   background-color: #f5f5f5;
 }
 
@@ -598,13 +652,13 @@ input[placeholder="単価"]
   background-color: #f5f5f5;
 }
 
-.calculateCost{
+.calculateCost {
   background-color: #f5f5f5;
   text-align: right;
 }
 
 .product-quantity,
-.item-name{
+.item-name {
   background-color: #f5f5f5;
 }
 
