@@ -1,11 +1,11 @@
 <template>
   <div id="app">
-    <HelloWorld />
+    <MainView />
   </div>
 </template>
 
 <script setup>
-import HelloWorld from './components/HelloWorld.vue'
+import MainView from './components/MainView.vue'
 
 </script>
 
@@ -17,5 +17,6 @@ import HelloWorld from './components/HelloWorld.vue'
   text-align: center;
   color: #2c3e50;
   margin-top: 60px;
+  print-color-adjust: exact;
 }
 </style>

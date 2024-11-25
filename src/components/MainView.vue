@@ -10,6 +10,56 @@
         <div class="billing-items-menu">上書単価</div>
         <div class="billing-items-menu">数量</div>
         <div class="billing-items-menu">小計</div>
+        <div
+          v-for="(stCost, index) in startUpCost"
+          :key="'startup-' + index"
+          class="billing-items"
+        >
+          <div class="checkbox-nomal checkbox-wrapper-19">
+            <input
+              :id="'stCost-' + index"
+              type="checkbox"
+              v-model="stCost.selected_option"
+              @change="handleCheckboxChange(stCost)"
+            />
+            <label :for="'stCost-' + index" class="check-box"></label>
+          </div>
+          <div class="billing-items-plan"></div>
+          <input
+            type="text"
+            :value="stCost.name"
+            placeholder="明細項目名"
+            class="pl-10 item-name"
+            readonly
+          />
+          <input
+            type="number"
+            :value="stCost.price"
+            placeholder="単価"
+            class="text-right"
+            readonly
+          />
+          <input
+            type="number"
+            v-model.number="stCost.variablePrice"
+            placeholder="単価_変動時用"
+            class="text-right"
+          />
+          <input
+            type="number"
+            v-model.number="stCost.quantity"
+            placeholder="数量"
+            class="text-right product-quantity"
+            readonly
+          />
+          <input
+            type="number"
+            :value="calculateCost(stCost)"
+            placeholder="0"
+            class="calculateCost"
+            readonly
+          />
+        </div>
         <div class="billing-items">
           <div class="billing-items-option"></div>
           <div class="billing-items-plan"></div>
@@ -87,59 +137,10 @@
           />
         </div>
         <div
-          v-for="(stCost, index) in startUpCost"
-          :key="'startup-' + index"
-          class="billing-items"
-        >
-          <div class="checkbox-nomal checkbox-wrapper-19">
-            <input
-              :id="'stCost-' + index"
-              type="checkbox"
-              v-model="stCost.selected_option"
-              @change="handleCheckboxChange(stCost)"
-            />
-            <label :for="'stCost-' + index" class="check-box"></label>
-          </div>
-          <div class="billing-items-plan"></div>
-          <input
-            type="text"
-            :value="stCost.name"
-            placeholder="明細項目名"
-            class="pl-10 item-name"
-            readonly
-          />
-          <input
-            type="number"
-            :value="stCost.price"
-            placeholder="単価"
-            class="text-right"
-            readonly
-          />
-          <input
-            type="number"
-            v-model.number="stCost.variablePrice"
-            placeholder="単価_変動時用"
-            class="text-right"
-          />
-          <input
-            type="number"
-            v-model.number="stCost.quantity"
-            placeholder="数量"
-            class="text-right product-quantity"
-            readonly
-          />
-          <input
-            type="number"
-            :value="calculateCost(stCost)"
-            placeholder="0"
-            class="calculateCost"
-            readonly
-          />
-        </div>
-        <div
           v-for="(product, index) in products"
           :key="index"
           class="billing-items"
+          :class="{'hidden-print': !product.selected_option } "
         >
           <div class="checkbox-nomal checkbox-wrapper-19">
             <input
@@ -155,10 +156,13 @@
             class="billing-items-plan"
             v-if="product.type !== 'product'"
           ></div>
-          <div class="checkbox-option checkbox-wrapper-19" v-if="product.type !== 'productIp'">
+          <div
+            class="checkbox-option checkbox-wrapper-19"
+            v-if="product.type !== 'productIp'"
+          >
             <input
               :id="'product-option-' + index"
-              :disabled="product.selected_option || isDisabledOption(product)"
+              :disabled="isDisabledOption(product) || product.selected_option"
               type="checkbox"
               v-model="product.selected_option_plan"
               @change="handleCheckboxChange(product)"
@@ -188,8 +192,8 @@
             type="number"
             placeholder="数量"
             v-model.number="product.quantity"
-            class="text-right product-quantity"
-            readonly
+            :class="product.class"
+            :readonly="product.isReadonly"
           />
           <input
             type="number"
@@ -244,7 +248,10 @@
     </div>
     <div class="container-option-total">
       <div class="option-total">
-        <p>選べるオプション残高 : {{ formatNumber(remainingPrice) }} 円</p>
+        <p>プラン付帯オプション残高 : {{ formatNumber(remainingPrice) }} 円</p>
+      </div>
+      <div class="option-total">
+        <p>ユーザーアカウント数 : {{ formatNumber(usersCount) }} 個</p>
       </div>
     </div>
     <div class="container-total">
@@ -263,19 +270,15 @@
         <span class="colon">:</span>
         <span class="value">{{ formatNumber(totalPrice) }} 円</span>
       </div>
+      <button @click="myPrint" class="hidden-print">
+        印刷
+      </button>
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, watch } from "vue";
-
-//プラン情報
-const plans = ref([
-  { name: "ベーシック プラン", basePrice: 32000, optionPrice: 0 },
-  { name: "スタンダード プラン", basePrice: 40000, optionPrice: 15000 },
-  { name: "コンプリート プラン", basePrice: 50000, optionPrice: 30000 },
-]);
 
 //初期導入費用
 const startUpCost = ref([
@@ -289,10 +292,17 @@ const startUpCost = ref([
   },
 ]);
 
+//プラン情報
+const plans = ref([
+  { name: "ベーシック プラン", basePrice: 32000, optionPrice: 0 },
+  { name: "スタンダード プラン", basePrice: 40000, optionPrice: 15000 },
+  { name: "コンプリート プラン", basePrice: 50000, optionPrice: 30000 },
+]);
+
 const users = ref([
   {
     type: "user",
-    name: "ユーザーアカウント ※追加分として3アカウント毎追加料金 : 5,000 円",
+    name: "ユーザーアカウント 1アカウント毎",
     price: 0,
     quantity: 1,
     variablePrice: 0,
@@ -302,14 +312,26 @@ const users = ref([
 // オプションサービス
 const products = ref([
   {
+    type: "product",
+    name: "3ユーザ利用オプション",
+    price: 5000,
+    selected_option: false,
+    selected_option_plan: false,
+    quantity: 0,
+    variablePrice: 0,
+    isReadonly: false,
+    class: "text-right",
+  },
+  {
     type: "productIp",
     name: "接続元IPアドレスによるアクセス制限機能",
     price: 1000,
     selected_option: false,
     quantity: 0,
     variablePrice: 0,
+    isReadonly: true,
+    class: "text-right product-quantity",
   },
-
   {
     type: "product",
     name: "パスワード自動解除機能",
@@ -318,6 +340,8 @@ const products = ref([
     selected_option_plan: false,
     quantity: 0,
     variablePrice: 0,
+    isReadonly: true,
+    class: "text-right product-quantity",
   },
   {
     type: "product",
@@ -327,6 +351,8 @@ const products = ref([
     selected_option_plan: false,
     quantity: 0,
     variablePrice: 0,
+    isReadonly: true,
+    class: "text-right product-quantity",
   },
   {
     type: "product",
@@ -336,6 +362,8 @@ const products = ref([
     selected_option_plan: false,
     quantity: 0,
     variablePrice: 0,
+    isReadonly: true,
+    class: "text-right product-quantity",
   },
   {
     type: "product",
@@ -345,6 +373,8 @@ const products = ref([
     selected_option_plan: false,
     quantity: 0,
     variablePrice: 0,
+    isReadonly: true,
+    class: "text-right product-quantity",
   },
   {
     type: "product",
@@ -354,6 +384,8 @@ const products = ref([
     selected_option_plan: false,
     quantity: 0,
     variablePrice: 0,
+    isReadonly: true,
+    class: "text-right product-quantity",
   },
   {
     type: "product",
@@ -363,6 +395,8 @@ const products = ref([
     selected_option_plan: false,
     quantity: 0,
     variablePrice: 0,
+    isReadonly: true,
+    class: "text-right product-quantity",
   },
   {
     type: "product",
@@ -372,6 +406,8 @@ const products = ref([
     selected_option_plan: false,
     quantity: 0,
     variablePrice: 0,
+    isReadonly: true,
+    class: "text-right product-quantity",
   },
 ]);
 
@@ -450,13 +486,10 @@ const monthlyFee = computed(() => {
 //オプションのチェックボックスを押すと数量がの値を1にする
 function handleCheckboxChange(item) {
   if (item.type === "productIp") {
-    const user = users.value.find((user) => user.type === "user");
-    if (user) {
-      if (item.selected_option) {
-        item.quantity = user.quantity;
-      } else {
-        item.quantity = 0;
-      }
+    if (item.selected_option) {
+      item.quantity = usersCount.value;
+    } else {
+      item.quantity = 0;
     }
   } else if (item.selected_option) {
     item.quantity = 1;
@@ -471,7 +504,7 @@ function handleCheckboxChange(item) {
 const totalPlanPackOptPrice = computed(() => {
   return products.value
     .filter((product) => product.selected_option_plan)
-    .reduce((sum, product) => sum + product.price, 0);
+    .reduce((sum, product) => sum + product.price * product.quantity, 0);
 });
 
 //プラン付帯対象選択オプションの合計 - プラン付帯対象金額
@@ -484,7 +517,7 @@ const remainingPrice = computed(() => {
 
 //ププラン付帯対象選択オプションの合計 - プラン付帯対象金額によるCheckbox非活性化
 function isDisabledOption(product) {
-  if (product.selected_option) {
+  if (product.selected_option_plan) {
     return false;
   }
   if (!selectedPlan.value || selectedPlan.value.optionPrice === undefined)
@@ -492,16 +525,24 @@ function isDisabledOption(product) {
   return remainingPrice.value < product.price;
 }
 
+//ユーザーアカウント数確認関数
+const usersCount = computed(() => {
+  const user = users.value.find((user) => user.type === "user");
+  const userOption = products.value.find(
+    (userOpt) => userOpt.name === "3ユーザ利用オプション"
+  );
+  return user.quantity + userOption.quantity * 3;
+});
+
+//選択オプションリセットロジック
 watch(
-  () => users.value.map((user) => user.quantity), // users 배열의 quantity만 감지
-  () => {
+  usersCount, // usersCountの変化を監視
+  (newCount) => {
+    console.log(`usersCount has changed to ${newCount}`);
     // 유저의 quantity가 변경될 때마다 해당 "productIp" 타입 제품의 quantity 업데이트
     products.value.forEach((product) => {
       if (product.type === "productIp" && product.selected_option) {
-        const user = users.value.find((user) => user.type === "user");
-        if (user) {
-          product.quantity = user.quantity;
-        }
+          product.quantity = usersCount.value;
       }
     });
   },
@@ -594,6 +635,9 @@ const totalPrice = computed(() => {
 const formatNumber = (number) => {
   return new Intl.NumberFormat("en-US").format(number);
 };
+
+const myPrint = window.print.bind();
+
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
@@ -647,27 +691,30 @@ h4 {
   display: contents;
 }
 
-.billing-items-option,
+/* .billing-items-option,
 .billing-items-plan {
   border: 1px solid gray;
   border-radius: 5px;
   background-color: #f5f5f5;
-}
+} */
 
 .product-name {
   border: 1px solid gray;
   border-radius: 5px;
   text-align: left;
   padding-left: 5px;
-  padding-top: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: left;
 }
 
 .checkbox-nomal,
 .checkbox-option {
-  border: 1px solid gray;
-  border-radius: 5px;
-  padding-top: 5px;
-  accent-color: #0075ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* border: 1px solid gray;
+  border-radius: 5px; */
 }
 
 input[type="text"],
@@ -734,168 +781,149 @@ select {
 }
 
 .container-option-total {
+  display: flex;
   text-align: left;
   font-weight: bold;
   font-size: 20px;
 }
 
+.option-total {
+  margin-right: 40px;
+}
+
 .checkbox-wrapper-19 {
-    box-sizing: border-box;
-    --background-color: #fff;
-    --checkbox-height: 20px;
-  }
+  box-sizing: border-box;
+  --background-color: #fff;
+  --checkbox-height: 20px;
+}
 
-  @-moz-keyframes dothabottomcheck-19 {
-    0% {
-      height: 0;
-    }
-    100% {
-      height: calc(var(--checkbox-height) / 2);
-    }
-  }
+.container-total {
+  margin-bottom: 30px;
+}
 
-  @-webkit-keyframes dothabottomcheck-19 {
-    0% {
-      height: 0;
-    }
-    100% {
-      height: calc(var(--checkbox-height) / 2);
-    }
-  }
-
-  @keyframes dothabottomcheck-19 {
-    0% {
-      height: 0;
-    }
-    100% {
-      height: calc(var(--checkbox-height) / 2);
-    }
-  }
-
-  @keyframes dothatopcheck-19 {
-    0% {
-      height: 0;
-    }
-    50% {
-      height: 0;
-    }
-    100% {
-      height: calc(var(--checkbox-height) * 1.2);
-    }
-  }
-
-  @-webkit-keyframes dothatopcheck-19 {
-    0% {
-      height: 0;
-    }
-    50% {
-      height: 0;
-    }
-    100% {
-      height: calc(var(--checkbox-height) * 1.2);
-    }
-  }
-
-  @-moz-keyframes dothatopcheck-19 {
-    0% {
-      height: 0;
-    }
-    50% {
-      height: 0;
-    }
-    100% {
-      height: calc(var(--checkbox-height) * 1.2);
-    }
-  }
-
-  .checkbox-wrapper-19 input[type=checkbox] {
-    display: none;
-  }
-
-  .checkbox-wrapper-19 .check-box {
-    height: var(--checkbox-height);
-    width: var(--checkbox-height);
-    background-color: transparent;
-    border: calc(var(--checkbox-height) * .1) solid #949292;
-    border-radius: 5px;
-    position: relative;
-    display: inline-block;
-    -moz-box-sizing: border-box;
-    -webkit-box-sizing: border-box;
-    box-sizing: border-box;
-    -moz-transition: border-color ease 0.2s;
-    -o-transition: border-color ease 0.2s;
-    -webkit-transition: border-color ease 0.2s;
-    transition: border-color ease 0.2s;
-    cursor: pointer;
-    opacity: 1;
-  }
-  .checkbox-wrapper-19 .check-box::before,
-  .checkbox-wrapper-19 .check-box::after {
-    -moz-box-sizing: border-box;
-    -webkit-box-sizing: border-box;
-    box-sizing: border-box;
-    position: absolute;
+@-moz-keyframes dothabottomcheck-19 {
+  0% {
     height: 0;
-    width: calc(var(--checkbox-height) * .2);
-    background-color: #ff8137;
-    display: inline-block;
-    -moz-transform-origin: left top;
-    -ms-transform-origin: left top;
-    -o-transform-origin: left top;
-    -webkit-transform-origin: left top;
-    transform-origin: left top;
-    border-radius: 5px;
-    content: " ";
-    -webkit-transition: opacity ease 0.5;
-    -moz-transition: opacity ease 0.5;
-    transition: opacity ease 0.5;
   }
-  .checkbox-wrapper-19 .check-box::before {
-    top: calc(var(--checkbox-height) * .72);
-    left: calc(var(--checkbox-height) * .41);
-    box-shadow: 0 0 0 calc(var(--checkbox-height) * .05) var(--background-color);
-    -moz-transform: rotate(-135deg);
-    -ms-transform: rotate(-135deg);
-    -o-transform: rotate(-135deg);
-    -webkit-transform: rotate(-135deg);
-    transform: rotate(-135deg);
-  }
-  .checkbox-wrapper-19 .check-box::after {
-    top: calc(var(--checkbox-height) * .37);
-    left: calc(var(--checkbox-height) * .05);
-    -moz-transform: rotate(-45deg);
-    -ms-transform: rotate(-45deg);
-    -o-transform: rotate(-45deg);
-    -webkit-transform: rotate(-45deg);
-    transform: rotate(-45deg);
-  }
-
-  .checkbox-wrapper-19 input[type=checkbox]:checked + .check-box,
-  .checkbox-wrapper-19 .check-box.checked {
-    border-color: #ff8137;
-  }
-  .checkbox-wrapper-19 input[type=checkbox]:checked + .check-box::after,
-  .checkbox-wrapper-19 .check-box.checked::after {
+  100% {
     height: calc(var(--checkbox-height) / 2);
-    -moz-animation: dothabottomcheck-19 0.2s ease 0s forwards;
-    -o-animation: dothabottomcheck-19 0.2s ease 0s forwards;
-    -webkit-animation: dothabottomcheck-19 0.2s ease 0s forwards;
-    animation: dothabottomcheck-19 0.2s ease 0s forwards;
   }
-  .checkbox-wrapper-19 input[type=checkbox]:checked + .check-box::before,
-  .checkbox-wrapper-19 .check-box.checked::before {
-    height: calc(var(--checkbox-height) * 1.2);
-    -moz-animation: dothatopcheck-19 0.4s ease 0s forwards;
-    -o-animation: dothatopcheck-19 0.4s ease 0s forwards;
-    -webkit-animation: dothatopcheck-19 0.4s ease 0s forwards;
-    animation: dothatopcheck-19 0.4s ease 0s forwards;
-  }
+}
 
-  .checkbox-wrapper-19 input[type=checkbox]:disabled + .check-box {
+@-webkit-keyframes dothabottomcheck-19 {
+  0% {
+    height: 0;
+  }
+  100% {
+    height: calc(var(--checkbox-height) / 2);
+  }
+}
+
+@keyframes dothabottomcheck-19 {
+  0% {
+    height: 0;
+  }
+  100% {
+    height: calc(var(--checkbox-height) / 2);
+  }
+}
+
+@keyframes dothatopcheck-19 {
+  0% {
+    height: 0;
+  }
+  50% {
+    height: 0;
+  }
+  100% {
+    height: calc(var(--checkbox-height) * 1.2);
+  }
+}
+
+@-webkit-keyframes dothatopcheck-19 {
+  0% {
+    height: 0;
+  }
+  50% {
+    height: 0;
+  }
+  100% {
+    height: calc(var(--checkbox-height) * 1.2);
+  }
+}
+
+@-moz-keyframes dothatopcheck-19 {
+  0% {
+    height: 0;
+  }
+  50% {
+    height: 0;
+  }
+  100% {
+    height: calc(var(--checkbox-height) * 1.2);
+  }
+}
+
+.checkbox-wrapper-19 input[type="checkbox"] {
+  display: none;
+}
+
+.checkbox-wrapper-19 .check-box {
+  height: var(--checkbox-height);
+  width: var(--checkbox-height);
+  background-color: transparent;
+  border: calc(var(--checkbox-height) * 0.1) solid #949292;
+  border-radius: 5px;
+  position: relative;
+  display: inline-block;
+  box-sizing: border-box;
+  transition: border-color ease 0.2s;
+  cursor: pointer;
+  opacity: 1;
+}
+.checkbox-wrapper-19 .check-box::before,
+.checkbox-wrapper-19 .check-box::after {
+  box-sizing: border-box;
+  position: absolute;
+  height: 0;
+  width: calc(var(--checkbox-height) * 0.2);
+  background-color: #ff8137;
+  display: inline-block;
+  transform-origin: left top;
+  border-radius: 5px;
+  content: " ";
+  transition: opacity ease 0.5;
+}
+.checkbox-wrapper-19 .check-box::before {
+  top: calc(var(--checkbox-height) * 0.72);
+  left: calc(var(--checkbox-height) * 0.41);
+  box-shadow: 0 0 0 calc(var(--checkbox-height) * 0.05) var(--background-color);
+  transform: rotate(-135deg);
+}
+.checkbox-wrapper-19 .check-box::after {
+  top: calc(var(--checkbox-height) * 0.37);
+  left: calc(var(--checkbox-height) * 0.05);
+  transform: rotate(-45deg);
+}
+
+.checkbox-wrapper-19 input[type="checkbox"]:checked + .check-box,
+.checkbox-wrapper-19 .check-box.checked {
+  border-color: #ff8137;
+}
+.checkbox-wrapper-19 input[type="checkbox"]:checked + .check-box::after,
+.checkbox-wrapper-19 .check-box.checked::after {
+  height: calc(var(--checkbox-height) / 2);
+  animation: dothabottomcheck-19 0.2s ease 0s forwards;
+}
+.checkbox-wrapper-19 input[type="checkbox"]:checked + .check-box::before,
+.checkbox-wrapper-19 .check-box.checked::before {
+  height: calc(var(--checkbox-height) * 1.2);
+  animation: dothatopcheck-19 0.2s ease 0s forwards;
+}
+
+.checkbox-wrapper-19 input[type="checkbox"]:disabled + .check-box {
   border-color: #ccc; /* 비활성화된 체크박스의 테두리 색 */
   background-color: #f0f0f0; /* 비활성화된 체크박스의 배경색 */
   opacity: 0.5; /* 비활성화된 상태에서 불투명도를 낮춰서 구분 */
 }
-
 </style>
