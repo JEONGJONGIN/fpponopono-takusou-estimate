@@ -140,7 +140,9 @@
           v-for="(product, index) in products"
           :key="index"
           class="billing-items"
-          :class="{'hidden-print': !product.selected_option } "
+          :class="{
+            'hidden-print': !(product.selected_option || product.selected_option_plan),
+          }"
         >
           <div class="checkbox-nomal checkbox-wrapper-19">
             <input
@@ -270,9 +272,7 @@
         <span class="colon">:</span>
         <span class="value">{{ formatNumber(totalPrice) }} 円</span>
       </div>
-      <button @click="myPrint" class="hidden-print">
-        印刷
-      </button>
+      <button @click="myPrint" class="hidden-print">印刷</button>
     </div>
   </div>
 </template>
@@ -542,7 +542,7 @@ watch(
     // 유저의 quantity가 변경될 때마다 해당 "productIp" 타입 제품의 quantity 업데이트
     products.value.forEach((product) => {
       if (product.type === "productIp" && product.selected_option) {
-          product.quantity = usersCount.value;
+        product.quantity = usersCount.value;
       }
     });
   },
@@ -637,7 +637,6 @@ const formatNumber = (number) => {
 };
 
 const myPrint = window.print.bind();
-
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
@@ -649,11 +648,13 @@ const myPrint = window.print.bind();
 }
 
 button {
-  margin-top: 20px;
+  margin-top: 15px;
+  margin-bottom: 15px;
   padding: 10px;
   background-color: #4caf50;
   color: white;
   border: none;
+  border-radius: 5px;
   cursor: pointer;
 }
 
@@ -675,7 +676,7 @@ h4 {
   display: grid;
   grid-template-columns: 5% 5% 44% 10% 10% 10% 12%;
   margin-bottom: 1rem;
-  gap: 0.5rem;
+  gap: 0.4rem;
   height: 100%;
 }
 
@@ -795,10 +796,6 @@ select {
   box-sizing: border-box;
   --background-color: #fff;
   --checkbox-height: 20px;
-}
-
-.container-total {
-  margin-bottom: 30px;
 }
 
 @-moz-keyframes dothabottomcheck-19 {
