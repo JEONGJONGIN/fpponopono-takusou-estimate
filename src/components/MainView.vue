@@ -141,7 +141,9 @@
           :key="index"
           class="billing-items"
           :class="{
-            'hidden-print': !(product.selected_option || product.selected_option_plan),
+            'hidden-print': !(
+              product.selected_option || product.selected_option_plan
+            ),
           }"
         >
           <div class="checkbox-nomal checkbox-wrapper-19">
@@ -589,7 +591,10 @@ function calculateCost(item) {
     (item.type === "storage" && usercount > 1) ||
     item.selected_option_plan
   ) {
-    const discount = item.variablePrice > 0 ? item.variablePrice : item.price;
+    const discount =
+      item.variablePrice > 0
+        ? item.variablePrice * item.quantity
+        : item.price * item.quantity;
     return baseCost - discount;
   }
   return baseCost;
@@ -640,6 +645,4 @@ const myPrint = window.print.bind();
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
-<style scoped>
-
-</style>
+<style scoped></style>
