@@ -587,10 +587,13 @@ function calculateCost(item) {
       const discount = discountMultiplier * 1000;
       return baseCost - firstUserPrice - discount;
     }
-  } else if (
-    (item.type === "storage" && usercount > 1) ||
-    item.selected_option_plan
-  ) {
+  } else if (item.type === "storage" && usercount > 1) {
+    const discount =
+      item.variablePrice > 0
+        ? item.variablePrice
+        : item.price
+    return baseCost - discount;
+  } else if (item.selected_option_plan) {
     const discount =
       item.variablePrice > 0
         ? item.variablePrice * item.quantity
