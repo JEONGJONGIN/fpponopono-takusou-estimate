@@ -411,6 +411,17 @@ const products = ref([
     isReadonly: true,
     class: "text-right product-quantity",
   },
+  {
+    type: "product",
+    name: "OCCTO連携機能",
+    price: 5000,
+    selected_option: false,
+    selected_option_plan: false,
+    quantity: 0,
+    variablePrice: 0,
+    isReadonly: true,
+    class: "text-right product-quantity",
+  },
 ]);
 
 const product_storage = ref([
