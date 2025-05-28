@@ -10,6 +10,7 @@
   }
 }
 
+/*印刷時A4 サイズ自動調整  */
 @page {
   size: A4 landscape;
 }
