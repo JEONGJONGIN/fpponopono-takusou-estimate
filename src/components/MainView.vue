@@ -1,6 +1,14 @@
 <template>
   <div class="estimate-tool">
-    <h1 class="mb-10 text-4xl font-bold">託送・発電管理システム見積</h1>
+    <h1 class="mb-5 text-4xl font-bold">託送・発電管理システム見積</h1>
+    <div class="mb-5 customer-name">
+      <input
+        type="text"
+        class="customer-name-input"
+        v-model="customerName"
+        placeholder="顧客名"
+      /> 様
+    </div>
     <div class="fpinvoice-editor">
       <div class="fpinvoice">
         <div class="billing-items-menu">オプ<br />ション</div>
@@ -334,6 +342,16 @@ const products = ref([
     isReadonly: true,
     class: "text-right product-quantity",
   },
+    {
+    type: "product",
+    name: "ファイル取得通知機能",
+    price: 1000,
+    selected_option: false,
+    quantity: 0,
+    variablePrice: 0,
+    isReadonly: false,
+    class: "text-right",
+  },
   {
     type: "product",
     name: "パスワード自動解除機能",
@@ -599,10 +617,7 @@ function calculateCost(item) {
       return baseCost - firstUserPrice - discount;
     }
   } else if (item.type === "storage" && usercount > 1) {
-    const discount =
-      item.variablePrice > 0
-        ? item.variablePrice
-        : item.price
+    const discount = item.variablePrice > 0 ? item.variablePrice : item.price;
     return baseCost - discount;
   } else if (item.selected_option_plan) {
     const discount =

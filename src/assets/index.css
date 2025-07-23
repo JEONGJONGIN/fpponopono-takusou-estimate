@@ -21,6 +21,14 @@
   text-align: center;
 }
 
+.customer-name{
+  text-align: left;
+}
+
+.customer-name-input{
+  width: 300px;
+}
+
 button {
   margin-top: 15px;
   margin-bottom: 15px;
